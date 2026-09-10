@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Play,
+  Sliders,
+  CheckCircle2,
+  Mic,
+  Video,
+  Shield,
+  Clock,
+  Layers,
+  Bot,
+  Compass,
+  Volume2
+} from 'lucide-react';
 import {
   ROLES,
   EXPERIENCE_LEVELS,
@@ -9,9 +23,7 @@ import {
 } from '../utils/constants';
 import { useInterview } from '../hooks/useInterview';
 import { interviewService } from '../services/interviewService';
-import { Card } from '../components/common/Card';
-import { Button } from '../components/common/Button';
-import { Sliders, Play, CheckCircle } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 
 export const InterviewSetup = () => {
   const navigate = useNavigate();
@@ -23,15 +35,15 @@ export const InterviewSetup = () => {
     experienceLevel: 'Mid-Level',
     type: 'Technical',
     difficulty: 'Medium',
-    questionCount: 5
+    questionCount: 5,
+    persona: 'Bar Raiser (Rigorous)',
   });
 
   const handleStart = async () => {
     setLoading(true);
-
     try {
-      const interviewSession = await interviewService.startInterview(config);
-      initializeSession(interviewSession);
+      const sessionData = await interviewService.startInterview(config);
+      initializeSession(sessionData);
       navigate('/interview/session');
     } finally {
       setLoading(false);
@@ -39,272 +51,310 @@ export const InterviewSetup = () => {
   };
 
   return (
-    <div className="min-h-screen space-y-6 bg-[#050505] text-white">
-
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">
-          Configure Your Interview
-        </h1>
-
-        <p className="text-sm text-gray-400 mt-1">
-          Customize criteria to trigger role-targeted mock questions and
-          evaluation metrics.
-        </p>
+    <div className="space-y-8 max-w-6xl mx-auto pb-16 text-left">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-900/10 pb-6">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 mb-2.5">
+            <span className="w-2 h-2 rounded-full bg-[#E05A47]" />
+            <span className="font-mono text-[10px] text-[#B45309] uppercase tracking-widest font-bold">
+              CHAMBER CALIBRATION V2.4 · PRE-FLIGHT
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight text-[#1E1B4B]">
+            Simulation Setup Chamber
+          </h1>
+          <p className="text-xs text-[#52525B] mt-1.5 leading-relaxed">
+            Configure target specialization, evaluation rigor, and AI persona criteria before initiating the live session.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Configuration Selectors */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Configuration Matrix */}
         <div className="lg:col-span-8 space-y-6">
+          {/* Step 1: Target Role / Track */}
+          <Card className="clay-card-antique p-6 border-2 border-white shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-mono text-xs text-[#B45309] uppercase font-bold tracking-wider">
+                01 / TARGET SPECIALIZATION
+              </span>
+              <span className="text-xs font-mono font-bold text-[#E05A47]">Selected: {config.role}</span>
+            </div>
+            <h2 className="text-lg font-serif font-bold text-[#1E1B4B] mb-4">
+              Engineering Focus Track
+            </h2>
 
-          {/* Target Role */}
-          <Card>
-            <label className="block text-sm font-bold text-white mb-3">
-              1. Select Target Role
-            </label>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {ROLES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() =>
-                    setConfig({
-                      ...config,
-                      role: r
-                    })
-                  }
-                  className={`p-3 text-xs font-semibold rounded-xl border text-left transition-all duration-200 ${
-                    config.role === r
-                      ? 'bg-[#ff6b00] text-white border-[#ff6b00] shadow-lg shadow-orange-500/20'
-                      : 'bg-[#141414] text-gray-300 border-white/10 hover:border-orange-500/50 hover:text-white hover:bg-[#1c1c1c]'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {ROLES.map((r) => {
+                const isSelected = config.role === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setConfig({ ...config, role: r })}
+                    className={`p-3.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'clay-btn-terracotta text-white border-transparent font-bold shadow-sm'
+                        : 'bg-[#FAF7F2] border-amber-200/80 text-[#52525B] hover:text-[#1E1B4B] hover:bg-amber-50/60 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="truncate">{r}</span>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <span className={`text-[10px] font-mono block ${isSelected ? 'text-amber-100' : 'text-[#71717A]'}`}>
+                      Active Matrix
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </Card>
 
-          {/* Experience Level & Interview Type */}
+          {/* Step 2: Rigor & Experience Level */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-            {/* Experience Level */}
-            <Card>
-              <label className="block text-sm font-bold text-white mb-3">
-                2. Experience Level
-              </label>
-
-              <div className="space-y-2">
-                {EXPERIENCE_LEVELS.map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() =>
-                      setConfig({
-                        ...config,
-                        experienceLevel: lvl
-                      })
-                    }
-                    className={`w-full p-2.5 text-xs font-semibold rounded-xl border text-left flex justify-between items-center transition-all duration-200 ${
-                      config.experienceLevel === lvl
-                        ? 'bg-[#ff6b00] text-white border-[#ff6b00]'
-                        : 'bg-[#141414] text-gray-300 border-white/10 hover:border-orange-500/50 hover:text-white'
-                    }`}
-                  >
-                    {lvl}
-
-                    {config.experienceLevel === lvl && (
-                      <CheckCircle className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                ))}
+            <Card className="clay-card-antique p-6 border-2 border-white shadow-sm">
+              <span className="font-mono text-xs text-[#B45309] uppercase font-bold tracking-wider block mb-2">
+                02 / EVALUATION RIGOR
+              </span>
+              <h2 className="text-lg font-serif font-bold text-[#1E1B4B] mb-4">
+                Difficulty Tier
+              </h2>
+              <div className="space-y-2.5">
+                {DIFFICULTIES.map((diff) => {
+                  const isSelected = config.difficulty === diff;
+                  return (
+                    <button
+                      key={diff}
+                      type="button"
+                      onClick={() => setConfig({ ...config, difficulty: diff })}
+                      className={`w-full p-3.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? 'clay-btn-terracotta text-white border-transparent font-bold shadow-sm'
+                          : 'bg-[#FAF7F2] border-amber-200/80 text-[#52525B] hover:text-[#1E1B4B] hover:bg-amber-50/60 font-medium'
+                      }`}
+                    >
+                      <div>
+                        <p className={isSelected ? 'text-white font-bold' : 'font-bold text-[#1E1B4B]'}>{diff}</p>
+                        <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-amber-100' : 'text-[#71717A]'}`}>
+                          {diff === 'Easy' && 'Core fundamentals & definitions'}
+                          {diff === 'Medium' && 'Standard design & trade-off analysis'}
+                          {diff === 'Hard' && 'Edge-case handling & complex scale'}
+                        </p>
+                      </div>
+                      {isSelected && <span className="w-2 h-2 rounded-full bg-white" />}
+                    </button>
+                  );
+                })}
               </div>
             </Card>
 
-            {/* Interview Type */}
-            <Card>
-              <label className="block text-sm font-bold text-white mb-3">
-                3. Interview Type
-              </label>
-
-              <div className="space-y-2">
-                {INTERVIEW_TYPES.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() =>
-                      setConfig({
-                        ...config,
-                        type: t
-                      })
-                    }
-                    className={`w-full p-2.5 text-xs font-semibold rounded-xl border text-left flex justify-between items-center transition-all duration-200 ${
-                      config.type === t
-                        ? 'bg-[#ff6b00] text-white border-[#ff6b00]'
-                        : 'bg-[#141414] text-gray-300 border-white/10 hover:border-orange-500/50 hover:text-white'
-                    }`}
-                  >
-                    {t}
-
-                    {config.type === t && (
-                      <CheckCircle className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                ))}
+            <Card className="clay-card-antique p-6 border-2 border-white shadow-sm">
+              <span className="font-mono text-xs text-[#B45309] uppercase font-bold tracking-wider block mb-2">
+                03 / CANDIDATE SENIORITY
+              </span>
+              <h2 className="text-lg font-serif font-bold text-[#1E1B4B] mb-4">
+                Experience Bracket
+              </h2>
+              <div className="space-y-2.5">
+                {EXPERIENCE_LEVELS.map((lvl) => {
+                  const isSelected = config.experienceLevel === lvl;
+                  return (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setConfig({ ...config, experienceLevel: lvl })}
+                      className={`w-full p-3.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? 'clay-btn-terracotta text-white border-transparent font-bold shadow-sm'
+                          : 'bg-[#FAF7F2] border-amber-200/80 text-[#52525B] hover:text-[#1E1B4B] hover:bg-amber-50/60 font-medium'
+                      }`}
+                    >
+                      <div>
+                        <p className={isSelected ? 'text-white font-bold' : 'font-bold text-[#1E1B4B]'}>{lvl}</p>
+                        <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-amber-100' : 'text-[#71717A]'}`}>
+                          {lvl === 'Junior' && '0–2 yrs · Clean code & basics'}
+                          {lvl === 'Mid-Level' && '2–5 yrs · Systems & independence'}
+                          {lvl === 'Senior' && '5+ yrs · Architecture & leadership'}
+                        </p>
+                      </div>
+                      {isSelected && <span className="w-2 h-2 rounded-full bg-white" />}
+                    </button>
+                  );
+                })}
               </div>
             </Card>
           </div>
 
-          {/* Difficulty & Number of Questions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Step 3: Question Allotment & Mode */}
+          <Card className="clay-card-antique p-6 border-2 border-white shadow-sm">
+            <span className="font-mono text-xs text-[#B45309] uppercase font-bold tracking-wider block mb-2">
+              04 / CHAMBER ALLOTMENT
+            </span>
+            <h2 className="text-lg font-serif font-bold text-[#1E1B4B] mb-4">
+              Question Count & Session Format
+            </h2>
 
-            {/* Difficulty */}
-            <Card>
-              <label className="block text-sm font-bold text-white mb-3">
-                4. Difficulty
-              </label>
-
-              <div className="flex gap-2">
-                {DIFFICULTIES.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() =>
-                      setConfig({
-                        ...config,
-                        difficulty: d
-                      })
-                    }
-                    className={`flex-1 py-2 text-xs font-semibold rounded-xl border text-center transition-all duration-200 ${
-                      config.difficulty === d
-                        ? 'bg-[#ff6b00] text-white border-[#ff6b00]'
-                        : 'bg-[#141414] text-gray-300 border-white/10 hover:border-orange-500/50 hover:text-white'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                {QUESTION_COUNTS.map((cnt) => {
+                  const isSelected = config.questionCount === cnt;
+                  return (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setConfig({ ...config, questionCount: cnt })}
+                      className={`p-3.5 rounded-xl border text-center text-xs transition-all cursor-pointer ${
+                        isSelected
+                          ? 'clay-btn-terracotta text-white border-transparent font-bold shadow-sm'
+                          : 'bg-[#FAF7F2] border-amber-200/80 text-[#52525B] hover:text-[#1E1B4B] hover:bg-amber-50/60 font-medium'
+                      }`}
+                    >
+                      <p className={`text-xl font-bold font-mono ${isSelected ? 'text-white' : 'text-[#1E1B4B]'}`}>{cnt}</p>
+                      <p className={`text-[10px] font-mono mt-0.5 ${isSelected ? 'text-amber-100' : 'text-[#71717A]'}`}>Questions</p>
+                      <p className={`text-[10px] mt-1 font-mono ${isSelected ? 'text-amber-200 font-bold' : 'text-[#B45309]'}`}>
+                        ~{cnt * 4} mins
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
-            </Card>
 
-            {/* Question Count */}
-            <Card>
-              <label className="block text-sm font-bold text-white mb-3">
-                5. Question Count
-              </label>
-
-              <div className="flex gap-2">
-                {QUESTION_COUNTS.map((cnt) => (
-                  <button
-                    key={cnt}
-                    type="button"
-                    onClick={() =>
-                      setConfig({
-                        ...config,
-                        questionCount: cnt
-                      })
-                    }
-                    className={`flex-1 py-2 text-xs font-semibold rounded-xl border text-center transition-all duration-200 ${
-                      config.questionCount === cnt
-                        ? 'bg-[#ff6b00] text-white border-[#ff6b00]'
-                        : 'bg-[#141414] text-gray-300 border-white/10 hover:border-orange-500/50 hover:text-white'
-                    }`}
-                  >
-                    {cnt}
-                  </button>
-                ))}
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                {INTERVIEW_TYPES.map((t) => {
+                  const isSelected = config.type === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setConfig({ ...config, type: t })}
+                      className={`p-3 rounded-xl border text-center text-xs font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-100/80 border-[#E05A47] text-[#E05A47] shadow-sm'
+                          : 'bg-[#FAF7F2] border-amber-200 text-[#52525B] hover:text-[#1E1B4B]'
+                      }`}
+                    >
+                      {t} Mode
+                    </button>
+                  );
+                })}
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </div>
 
-        {/* Summary Card */}
-        <div className="lg:col-span-4">
+        {/* Right Column: Pre-Flight Readiness Dossier */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Device & Sensor Check */}
+          <Card className="clay-card-antique p-6 border-2 border-white shadow-sm space-y-4">
+            <span className="font-mono text-xs text-[#B45309] uppercase font-bold tracking-wider block">
+              SENSOR VERIFICATION
+            </span>
+            <h2 className="text-base font-serif font-bold text-[#1E1B4B]">
+              Hardware Readiness
+            </h2>
 
-          <Card className="sticky top-24 bg-[#141414] border-white/10 shadow-xl">
-
-            {/* Summary Header */}
-            <div className="flex items-center gap-2 pb-4 border-b border-white/10">
-
-              <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                <Sliders className="w-4 h-4 text-orange-500" />
-              </div>
-
-              <h3 className="text-sm font-bold text-white">
-                Session Summary
-              </h3>
-            </div>
-
-            {/* Summary Details */}
-            <div className="py-4 space-y-4 text-xs">
-
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">
-                  Target Role
-                </span>
-
-                <span className="font-semibold text-white text-right">
-                  {config.role}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF7F2] border border-amber-200/80">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#0F766E] border border-emerald-200 flex items-center justify-center">
+                    <Mic className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#1E1B4B]">Microphone Stream</p>
+                    <p className="text-[10px] font-mono text-[#71717A]">48kHz Calibrated Sensor</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[#0F766E]">
+                  ACTIVE
                 </span>
               </div>
 
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">
-                  Seniority
-                </span>
-
-                <span className="font-semibold text-white text-right">
-                  {config.experienceLevel}
-                </span>
-              </div>
-
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">
-                  Format
-                </span>
-
-                <span className="font-semibold text-white text-right">
-                  {config.type}
-                </span>
-              </div>
-
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">
-                  Difficulty
-                </span>
-
-                <span className="font-semibold text-orange-400 text-right">
-                  {config.difficulty}
-                </span>
-              </div>
-
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">
-                  Total Questions
-                </span>
-
-                <span className="font-semibold text-white text-right">
-                  {config.questionCount} Questions
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF7F2] border border-amber-200/80">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#0F766E] border border-emerald-200 flex items-center justify-center">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#1E1B4B]">Camera Sensor</p>
+                    <p className="text-[10px] font-mono text-[#71717A]">1080p Telemetry Stream</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[#0F766E]">
+                  ACTIVE
                 </span>
               </div>
             </div>
-
-            {/* Start Button */}
-            <Button
-              size="lg"
-              loading={loading}
-              onClick={handleStart}
-              className="w-full mt-2 bg-[#ff6b00] hover:bg-[#ff8533]"
-            >
-              <Play className="w-4 h-4 mr-1" />
-              Start AI Interview
-            </Button>
-
           </Card>
+
+          {/* Persona Configuration */}
+          <Card className="clay-card-antique p-6 border-2 border-white shadow-sm space-y-4">
+            <span className="font-mono text-xs text-[#B45309] uppercase font-bold tracking-wider block">
+              AI EVALUATOR PROFILE
+            </span>
+            <h2 className="text-base font-serif font-bold text-[#1E1B4B]">
+              Interviewer Demeanor
+            </h2>
+
+            <div className="space-y-2.5">
+              {[
+                { name: 'Bar Raiser (Rigorous)', desc: 'Zero tolerance for vague assumptions.' },
+                { name: 'Staff Engineer (Collaborative)', desc: 'Provides subtle hints when blocked.' },
+                { name: 'Benchmark Standard', desc: 'Strictly neutral scoring cadence.' },
+              ].map((p) => {
+                const isSelected = config.persona === p.name;
+                return (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => setConfig({ ...config, persona: p.name })}
+                    className={`w-full p-3 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'clay-btn-terracotta text-white border-transparent font-bold shadow-sm'
+                        : 'bg-[#FAF7F2] border-amber-200/80 text-[#52525B] hover:text-[#1E1B4B] hover:bg-amber-50/60 font-medium'
+                    }`}
+                  >
+                    <p className={isSelected ? 'text-white font-bold' : 'font-bold text-[#1E1B4B]'}>{p.name}</p>
+                    <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-amber-100' : 'text-[#71717A]'}`}>{p.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Launch Action */}
+          <div className="clay-card-amber p-6 text-center space-y-4 border-2 border-white shadow-lg">
+            <div>
+              <p className="text-[10px] font-mono text-[#B45309] font-bold uppercase tracking-wider">
+                READY FOR SIMULATION
+              </p>
+              <h3 className="text-xl font-serif font-bold text-[#1E1B4B] mt-1">
+                {config.role}
+              </h3>
+              <p className="text-xs text-[#52525B] mt-1 font-mono">
+                {config.difficulty} · {config.experienceLevel} · {config.questionCount} Questions
+              </p>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={loading}
+              onClick={handleStart}
+              className="w-full py-3.5 rounded-xl clay-btn-terracotta text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>{loading ? 'Initializing Chamber...' : 'Enter Simulation Chamber'}</span>
+            </motion.button>
+
+            <p className="text-[10px] text-[#71717A] font-mono leading-relaxed">
+              Session is evaluated in real-time under mock enterprise confidentiality.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+export default InterviewSetup;
