@@ -43,7 +43,7 @@ jobs:
         run: |
           cd Backend
           pip install -r requirements.txt
-          pip install pytest httpx
+          pip install pytest httpx aiosqlite
 
       - name: Run Backend Tests
         run: |
