@@ -43,9 +43,12 @@ jobs:
         run: |
           cd Backend
           pip install -r requirements.txt
-          pip install pytest httpx
+          pip install pytest httpx aiosqlite email-validator
 
       - name: Run Backend Tests
         run: |
           cd Backend
           pytest tests/ -v
+        env:
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+          JWT_SECRET_KEY: "prepaura-simulation-ci-secret-key-2026"

@@ -8,8 +8,8 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    JWT_SECRET_KEY: str
+    DATABASE_URL: str = "sqlite+aiosqlite:///./prepaura.db"
+    JWT_SECRET_KEY: str = "prepaura-simulation-ultra-secure-key-2026-precision-jwt"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
