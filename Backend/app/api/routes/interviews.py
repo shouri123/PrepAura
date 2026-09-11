@@ -25,6 +25,11 @@ router = APIRouter(
     response_model=InterviewResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@router.post(
+    "/start",
+    response_model=InterviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def start_interview(
     interview_data: InterviewStartRequest,
     current_user: User = Depends(get_current_user),
@@ -39,6 +44,10 @@ async def start_interview(
 
 @router.get(
     "",
+    response_model=list[InterviewSummaryResponse],
+)
+@router.get(
+    "/history",
     response_model=list[InterviewSummaryResponse],
 )
 async def list_interviews(
@@ -67,8 +76,35 @@ async def get_interview(
     )
 
 
+@router.get(
+    "/{interview_id}/result",
+    response_model=ResultResponse,
+)
+async def get_interview_result(
+    interview_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    interview = await InterviewService.get_interview_by_id(
+        db,
+        interview_id,
+        current_user.id,
+    )
+    if not interview.result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Result not compiled yet for this interview.",
+        )
+    return interview.result
+
+
 @router.post(
     "/{interview_id}/answers",
+    response_model=AnswerResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+@router.post(
+    "/{interview_id}/answer",
     response_model=AnswerResponse,
     status_code=status.HTTP_201_CREATED,
 )
