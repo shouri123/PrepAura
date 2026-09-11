@@ -2,3 +2,9 @@ node_modules/
 dist/
 .env
 .env.local
+Backend/prepaura.db
+Backend/__pycache__/
+Backend/**/__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

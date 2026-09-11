@@ -5,8 +5,11 @@ import { InterviewProvider } from './context/InterviewContext';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 import { Home } from './pages/Home';
+import { Methodology } from './pages/Methodology';
+import { Curriculum } from './pages/Curriculum';
+import { Pricing } from './pages/Pricing';
 import { Login } from './pages/Login';
-import { Register } from './pages/register';
+import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { InterviewSetup } from './pages/InterviewSetup';
 import { Interview } from './pages/Interview';
@@ -23,8 +26,11 @@ export default function App() {
       <AuthProvider>
         <InterviewProvider>
           <Routes>
-            {/* Public Pages */}
+            {/* Public Standalone Pages */}
             <Route path="/" element={<Home />} />
+            <Route path="/methodology" element={<Methodology />} />
+            <Route path="/curriculum" element={<Curriculum />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 

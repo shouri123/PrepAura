@@ -1,0 +1,51 @@
+name: PrepAura CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  frontend-build:
+    name: Frontend Build & Bundle Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify Production Build
+        run: npm run build
+
+  backend-tests:
+    name: Backend Lint & Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          cd Backend
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Run Backend Tests
+        run: |
+          cd Backend
+          pytest tests/ -v

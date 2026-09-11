@@ -1,21 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useInterview } from '../hooks/useInterview';
-import { interviewService } from '../services/interviewService';
-import { Card } from '../components/common/Card';
-import { Button } from '../components/common/Button';
-import { ProgressBar } from '../components/common/ProgressBar';
-import { ExitConfirmModal } from '../components/interview/ExitConfirmModal';
-
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles,
   Clock,
-  LogOut,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
   ChevronLeft,
   ChevronRight,
   Send,
-  Lightbulb
+  Lightbulb,
+  AlertTriangle,
+  Bot,
+  User,
+  CheckCircle2,
+  Volume2
 } from 'lucide-react';
+import { useInterview } from '../hooks/useInterview';
+import { interviewService } from '../services/interviewService';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Progress } from '../components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '../components/ui/dialog';
 
 export const Interview = () => {
   const navigate = useNavigate();
@@ -26,6 +39,8 @@ export const Interview = () => {
   const [currentText, setCurrentText] = useState('');
   const [showHint, setShowHint] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [micMuted, setMicMuted] = useState(false);
+  const [cameraOff, setCameraOff] = useState(false);
 
   // Redirect if there are no questions
   useEffect(() => {
@@ -34,22 +49,21 @@ export const Interview = () => {
     }
   }, [session, navigate]);
 
-  // Timer
+  // Session stopwatch timer
   useEffect(() => {
     const timer = setInterval(() => {
       setSeconds((s) => s + 1);
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
   const currentIndex = session.currentIndex || 0;
-  const currentQ = session.questions[currentIndex] || {};
-  const totalQ = session.questions.length;
+  const currentQ = session.questions?.[currentIndex] || {};
+  const totalQ = session.questions?.length || 1;
+  const progressPercent = ((currentIndex + 1) / totalQ) * 100;
 
-  // Load saved answer when question changes
   useEffect(() => {
-    setCurrentText(session.answers[currentIndex] || '');
+    setCurrentText(session.answers?.[currentIndex] || '');
     setShowHint(false);
   }, [currentIndex, session.answers]);
 
@@ -72,12 +86,8 @@ export const Interview = () => {
 
   const handleComplete = async () => {
     setSubmitting(true);
-
     try {
-      const result = await interviewService.completeInterview(
-        session.interviewId
-      );
-
+      const result = await interviewService.completeInterview(session.interviewId);
       navigate(`/interview/result/${result.id}`);
     } finally {
       setSubmitting(false);
@@ -87,222 +97,278 @@ export const Interview = () => {
   const formatTimer = (totalSeconds) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
-
-    return `${mins.toString().padStart(2, '0')}:${secs
-      .toString()
-      .padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (!session.questions.length) {
+  if (!session.questions?.length) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-
-      {/* ================= HEADER ================= */}
-      <header className="bg-[#0a0a0a] border-b border-white/10 px-6 py-3.5 flex items-center justify-between sticky top-0 z-30">
-
-        {/* Logo + Interview Info */}
-        <div className="flex items-center gap-3">
-
-          <div className="w-8 h-8 rounded-lg bg-[#ff6b00] flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-            <Sparkles className="w-4 h-4" />
+    <div className="min-h-screen bg-[#FAF7F2] text-[#1E1B4B] font-modern flex flex-col justify-between select-none">
+      {/* Top Session Command Bar */}
+      <header className="h-16 px-6 lg:px-10 flex items-center justify-between border-b border-amber-900/10 bg-white/95 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#E05A47] animate-pulse" />
+            <span className="font-mono text-xs uppercase tracking-wider text-[#1E1B4B] font-bold">
+              CHAMBER LIVE · {session.config?.role || 'Frontend Architecture'}
+            </span>
           </div>
-
-          <div>
-            <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-              {session.config?.role || 'Interview'}
-            </h2>
-
-            <p className="text-[11px] text-gray-500">
-              Live Mock Evaluation
-            </p>
-          </div>
-
+          <span className="text-amber-300 hidden sm:inline">|</span>
+          <span className="font-mono text-xs text-[#71717A] hidden sm:inline">
+            DIFFICULTY: {session.config?.difficulty || 'Medium'}
+          </span>
         </div>
 
-        {/* Timer + Exit */}
-        <div className="flex items-center gap-6">
+        {/* Center Progress pill */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono text-[#71717A]">
+            QUESTION <span className="text-[#1E1B4B] font-bold">{currentIndex + 1}</span> OF {totalQ}
+          </span>
+          <div className="w-28 hidden md:block">
+            <Progress value={progressPercent} className="h-2" />
+          </div>
+        </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141414] border border-white/10 rounded-lg text-gray-300 text-xs font-mono font-bold">
-
-            <Clock className="w-3.5 h-3.5 text-orange-500" />
-
-            {formatTimer(seconds)}
-
+        {/* Right Timer & Exit */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-amber-200 shadow-sm">
+            <Clock className="w-3.5 h-3.5 text-[#E05A47]" />
+            <span className="font-mono text-xs font-bold text-[#1E1B4B]">
+              {formatTimer(seconds)}
+            </span>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={() => setShowExitModal(true)}
-            className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            className="text-xs font-bold text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 cursor-pointer transition-colors"
           >
-            <LogOut className="w-3.5 h-3.5 mr-1" />
-
-            Exit
-          </Button>
-
+            Abort Chamber
+          </button>
         </div>
       </header>
 
-      {/* ================= MAIN ================= */}
-      <main className="max-w-4xl w-full mx-auto p-4 sm:p-6 flex-1 flex flex-col justify-center">
+      {/* Main Simulation Arena */}
+      <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch text-left">
+        {/* Left Column: AI Evaluator Station */}
+        <div className="lg:col-span-5 flex flex-col space-y-4">
+          {/* AI Evaluator Feed */}
+          <div className="clay-card-antique p-6 border-2 border-white shadow-sm flex flex-col justify-between flex-1 min-h-[320px] relative overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-amber-900/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-[#E05A47] border border-amber-200">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[#1E1B4B]">AI Bar Raiser</p>
+                  <p className="text-[10px] font-mono text-[#71717A]">Audio Stream Active</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[#B45309]">
+                SYNTHESIZING
+              </span>
+            </div>
 
-        {/* Progress */}
-        <div className="mb-5">
+            {/* Live Audio Waveform visualizer */}
+            <div className="py-8 flex items-center justify-center gap-1.5">
+              {[12, 28, 45, 20, 60, 35, 75, 40, 55, 30, 68, 25, 40, 18].map((h, i) => (
+                <motion.span
+                  key={i}
+                  animate={{ height: [h * 0.4, h, h * 0.3] }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.9,
+                    delay: i * 0.08,
+                    ease: 'easeInOut',
+                  }}
+                  className="w-1.5 bg-[#E05A47] rounded-full"
+                  style={{ minHeight: '8px' }}
+                />
+              ))}
+            </div>
 
-          <ProgressBar
-            progress={((currentIndex + 1) / totalQ) * 100}
-            label={`Question ${currentIndex + 1} of ${totalQ}`}
-            scoreText={`${Math.round(
-              ((currentIndex + 1) / totalQ) * 100
-            )}% Completed`}
-          />
+            {/* Prompt Transcription */}
+            <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+              <div className="flex items-center gap-2 text-[#B45309] text-xs font-bold font-mono">
+                <Volume2 className="w-3.5 h-3.5 text-[#E05A47]" />
+                <span>CURRENT PROMPT QUERY</span>
+              </div>
+              <p className="text-sm font-serif font-bold text-[#1E1B4B] leading-relaxed">
+                "{currentQ.question}"
+              </p>
+            </div>
+          </div>
 
+          {/* Conceptual Hint Drawer */}
+          <div className="clay-card-antique p-4 border-2 border-white shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#52525B]">
+                <Lightbulb className="w-4 h-4 text-[#B45309]" />
+                <span>Conceptual Framework Hint</span>
+              </div>
+              <button
+                onClick={() => setShowHint(!showHint)}
+                className="text-xs font-bold text-[#71717A] hover:text-[#1E1B4B] px-2.5 py-1 rounded-lg hover:bg-amber-50 cursor-pointer transition-colors"
+              >
+                {showHint ? 'Hide' : 'Inspect'}
+              </button>
+            </div>
+            {showHint && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mt-3 pt-3 border-t border-amber-900/10 text-xs text-[#52525B] leading-relaxed"
+              >
+                {currentQ.hint || 'Focus on trade-offs, scale constraints, and error boundaries.'}
+              </motion.div>
+            )}
+          </div>
         </div>
 
-        {/* ================= QUESTION CARD ================= */}
-        <Card className="space-y-6 bg-[#141414] border border-white/10 shadow-2xl">
-
-          {/* Question Header */}
-          <div className="space-y-3">
-
+        {/* Right Column: Candidate Response Chamber */}
+        <div className="lg:col-span-7 flex flex-col space-y-4">
+          {/* Candidate Sensor Stream Overlay */}
+          <div className="clay-card-antique p-4 border-2 border-white shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
-
-              {/* Topic */}
-              <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                {currentQ.topic || 'General'}
-              </span>
-
-              {/* Difficulty */}
-              <span className="text-xs text-gray-400 font-medium">
-                Difficulty:{' '}
-                <span className="text-gray-200">
-                  {currentQ.difficulty || 'Medium'}
-                </span>
-              </span>
-
+              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-[#B45309] border border-amber-200">
+                <User className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#1E1B4B]">Candidate Transmission</p>
+                <p className="text-[10px] font-mono text-[#71717A]">
+                  {currentText.split(/\s+/).filter(Boolean).length} Words verbalized
+                </p>
+              </div>
             </div>
 
-            {/* QUESTION */}
-            <h2 className="text-xl sm:text-2xl font-bold text-white leading-relaxed">
-              {currentQ.question || 'Interview Question'}
-            </h2>
-
+            {/* Hardware toggle controls */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMicMuted(!micMuted)}
+                className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                  micMuted
+                    ? 'bg-rose-50 border-rose-200 text-rose-700'
+                    : 'bg-[#FAF7F2] border-amber-200 text-[#52525B] hover:text-[#1E1B4B]'
+                }`}
+                title="Toggle mic"
+              >
+                {micMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => setCameraOff(!cameraOff)}
+                className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                  cameraOff
+                    ? 'bg-rose-50 border-rose-200 text-rose-700'
+                    : 'bg-[#FAF7F2] border-amber-200 text-[#52525B] hover:text-[#1E1B4B]'
+                }`}
+                title="Toggle camera"
+              >
+                {cameraOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
-          {/* ================= HINT ================= */}
-          {currentQ.hint && (
-            <div>
-
-              <button
-                type="button"
-                onClick={() => setShowHint(!showHint)}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-400 hover:text-orange-300 transition-colors"
-              >
-
-                <Lightbulb className="w-3.5 h-3.5" />
-
-                {showHint ? 'Hide Hint' : 'Need a hint?'}
-
-              </button>
-
-              {showHint && (
-                <div className="mt-3 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl text-sm text-orange-200 leading-relaxed">
-                  {currentQ.hint}
-                </div>
-              )}
-
+          {/* Speech-to-Text / Response Editor */}
+          <div className="clay-card-antique p-6 border-2 border-white shadow-sm flex flex-col flex-1 min-h-[360px]">
+            <div className="flex items-center justify-between pb-3 border-b border-amber-900/10 mb-3">
+              <span className="font-mono text-xs text-[#B45309] uppercase font-bold tracking-wider">
+                Verbatim Response Stream / Scratchpad
+              </span>
+              <span className="text-[10px] font-mono text-[#0F766E] font-bold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0F766E] animate-pulse" />
+                Speech Synthesis Sync Active
+              </span>
             </div>
-          )}
-
-          {/* ================= ANSWER ================= */}
-          <div>
-
-            <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2">
-              Your Answer
-            </label>
 
             <textarea
-              rows={8}
               value={currentText}
               onChange={handleTextChange}
-              placeholder="Type your structured explanation here. Be thorough and provide practical examples..."
-              className="w-full p-4 text-sm bg-[#0a0a0a] text-white placeholder:text-gray-600 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500 resize-none transition-all"
+              placeholder="State your answer clearly. Discuss trade-offs, architecture decisions, edge cases, and rationale... (You may verbalize or type your response here)"
+              className="flex-1 w-full bg-transparent resize-none text-sm text-[#1E1B4B] placeholder:text-[#A1A1AA] focus:outline-none font-sans leading-relaxed p-1"
             />
 
-            <div className="flex justify-between items-center mt-2 text-gray-500 text-[11px]">
-
-              <span>
-                Markdown formatting supported
-              </span>
-
-              <span>
-                {currentText.trim().split(/\s+/).filter(Boolean).length} words
-              </span>
-
+            {/* Telemetry HUD Footer */}
+            <div className="pt-3 border-t border-amber-900/10 flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-[#71717A]">
+              <div className="flex items-center gap-4">
+                <span>EST: ~{currentQ.timeEstimate || '3 mins'}</span>
+                <span>ROLE: {currentQ.role || 'Architecture'}</span>
+              </div>
+              <span className="text-[#E05A47] font-bold">Auto-saved to session state</span>
             </div>
-
           </div>
 
-          {/* ================= NAVIGATION ================= */}
-          <div className="flex items-center justify-between pt-4 border-t border-white/10">
-
-            {/* Previous */}
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={handlePrev}
+          {/* Navigation & Submission Controls */}
+          <div className="flex items-center justify-between gap-4 pt-2">
+            <button
               disabled={currentIndex === 0}
-              className="bg-[#1a1a1a] border border-white/10 text-gray-300 hover:text-white"
+              onClick={handlePrev}
+              className={`px-4 py-2.5 rounded-xl border border-amber-200 text-xs font-bold text-[#1E1B4B] flex items-center gap-1.5 transition-all ${
+                currentIndex === 0 ? 'opacity-40 cursor-not-allowed bg-amber-50/50' : 'hover:bg-amber-50 cursor-pointer bg-white shadow-sm'
+              }`}
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
+              <ChevronLeft className="w-4 h-4" />
+              <span>Previous</span>
+            </button>
 
-              Previous
-            </Button>
-
-            {/* Next / Finish */}
-            {currentIndex < totalQ - 1 ? (
-
-              <Button
-                variant="primary"
-                size="md"
-                onClick={handleNext}
-              >
-                Next Question
-
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-
-            ) : (
-
-              <Button
-                variant="accent"
-                size="md"
-                loading={submitting}
-                onClick={handleComplete}
-              >
-                Finish & Generate AI Report
-
-                <Send className="w-4 h-4 ml-1" />
-              </Button>
-
-            )}
-
+            <div className="flex items-center gap-3">
+              {currentIndex < totalQ - 1 ? (
+                <button
+                  onClick={handleNext}
+                  className="px-5 py-2.5 rounded-xl clay-btn-terracotta text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <span>Save & Next Question</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  disabled={submitting}
+                  onClick={handleComplete}
+                  className="px-6 py-2.5 rounded-xl clay-btn-terracotta text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{submitting ? 'Evaluating Session...' : 'Finish & Generate Debrief'}</span>
+                </button>
+              )}
+            </div>
           </div>
+        </div>
+      </div>
 
-        </Card>
-      </main>
-
-      {/* ================= EXIT MODAL ================= */}
-      <ExitConfirmModal
-        isOpen={showExitModal}
-        onClose={() => setShowExitModal(false)}
-        onConfirm={() => navigate('/dashboard')}
-      />
-
+      {/* Confirmation Modal to Abort */}
+      <Dialog open={showExitModal} onOpenChange={setShowExitModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center mb-2 border border-rose-200">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <DialogTitle className="text-lg font-serif font-bold text-[#1E1B4B]">
+              Abort Active Simulation?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#52525B] leading-relaxed">
+              Exiting will terminate the active evaluation session. Answers collected so far will not be scored for telemetry benchmarks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-amber-900/10">
+            <button
+              onClick={() => setShowExitModal(false)}
+              className="px-4 py-2 rounded-xl border border-amber-200 text-xs font-bold text-[#1E1B4B] hover:bg-amber-50 cursor-pointer"
+            >
+              Resume Chamber
+            </button>
+            <button
+              onClick={() => {
+                setShowExitModal(false);
+                navigate('/dashboard');
+              }}
+              className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-rose-700 cursor-pointer"
+            >
+              Confirm Exit
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+export default Interview;
