@@ -155,33 +155,33 @@ export const InterviewResult = () => {
             <div>
               <div className="flex justify-between text-xs mb-1.5">
                 <span className="font-bold text-[#1E1B4B]">Technical Rigor & Depth</span>
-                <span className="font-mono text-[#E05A47] font-bold">{result.scores.technical}%</span>
+                <span className="font-mono text-[#E05A47] font-bold">{result.scores?.technical ?? 80}%</span>
               </div>
-              <Progress value={result.scores.technical} />
+              <Progress value={result.scores?.technical ?? 80} />
             </div>
 
             <div>
               <div className="flex justify-between text-xs mb-1.5">
                 <span className="font-bold text-[#1E1B4B]">Communication & Structured Delivery</span>
-                <span className="font-mono text-[#0F766E] font-bold">{result.scores.communication}%</span>
+                <span className="font-mono text-[#0F766E] font-bold">{result.scores?.communication ?? 80}%</span>
               </div>
-              <Progress value={result.scores.communication} />
+              <Progress value={result.scores?.communication ?? 80} />
             </div>
 
             <div>
               <div className="flex justify-between text-xs mb-1.5">
                 <span className="font-bold text-[#1E1B4B]">Problem Decomposition & Trade-offs</span>
-                <span className="font-mono text-[#B45309] font-bold">{result.scores.problemSolving}%</span>
+                <span className="font-mono text-[#B45309] font-bold">{result.scores?.problemSolving ?? 80}%</span>
               </div>
-              <Progress value={result.scores.problemSolving} />
+              <Progress value={result.scores?.problemSolving ?? 80} />
             </div>
 
             <div>
               <div className="flex justify-between text-xs mb-1.5">
                 <span className="font-bold text-[#1E1B4B]">Confidence & Edge-case Conviction</span>
-                <span className="font-mono text-[#1E1B4B] font-bold">{result.scores.confidence}%</span>
+                <span className="font-mono text-[#1E1B4B] font-bold">{result.scores?.confidence ?? 75}%</span>
               </div>
-              <Progress value={result.scores.confidence} />
+              <Progress value={result.scores?.confidence ?? 75} />
             </div>
           </div>
         </Card>
@@ -209,7 +209,7 @@ export const InterviewResult = () => {
             <span>Demonstrated Strengths</span>
           </div>
           <ul className="space-y-3">
-            {result.strengths.map((str, idx) => (
+            {(result.strengths || []).map((str, idx) => (
               <li key={idx} className="text-xs text-[#52525B] flex items-start gap-2.5 leading-relaxed">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0F766E] mt-1.5 shrink-0" />
                 <span>{str}</span>
@@ -225,7 +225,7 @@ export const InterviewResult = () => {
             <span>Targeted Growth Vectors</span>
           </div>
           <ul className="space-y-3">
-            {result.improvements.map((imp, idx) => (
+            {(result.improvements || result.weaknesses || []).map((imp, idx) => (
               <li key={idx} className="text-xs text-[#52525B] flex items-start gap-2.5 leading-relaxed">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#E05A47] mt-1.5 shrink-0" />
                 <span>{imp}</span>

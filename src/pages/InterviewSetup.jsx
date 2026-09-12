@@ -39,6 +39,44 @@ export const InterviewSetup = () => {
     persona: 'Bar Raiser (Rigorous)',
   });
 
+  const [micStatus, setMicStatus] = useState('idle'); // idle | testing | active | denied | unsupported
+  const [micLevel, setMicLevel] = useState(0);
+
+  const testMicrophone = async () => {
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setMicStatus('unsupported');
+      return;
+    }
+    setMicStatus('testing');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioCtx.createAnalyser();
+      const source = audioCtx.createMediaStreamSource(stream);
+      analyser.fftSize = 64;
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let samples = 0;
+      const interval = setInterval(() => {
+        analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((acc, v) => acc + v, 0) / dataArray.length;
+        setMicLevel(Math.min(100, Math.round((avg / 128) * 100)));
+        samples++;
+        if (samples > 20) {
+          clearInterval(interval);
+          stream.getTracks().forEach((track) => track.stop());
+          audioCtx.close();
+          setMicStatus('active');
+          setMicLevel(0);
+        }
+      }, 100);
+    } catch {
+      setMicStatus('denied');
+      setMicLevel(0);
+    }
+  };
+
   const handleStart = async () => {
     setLoading(true);
     try {
@@ -256,19 +294,71 @@ export const InterviewSetup = () => {
             </h2>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF7F2] border border-amber-200/80">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#0F766E] border border-emerald-200 flex items-center justify-center">
-                    <Mic className="w-4 h-4" />
+              <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-amber-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center border ${
+                        micStatus === 'active'
+                          ? 'bg-emerald-50 text-[#0F766E] border-emerald-200'
+                          : micStatus === 'denied'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-amber-50 text-[#B45309] border-amber-200'
+                      }`}
+                    >
+                      <Mic className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#1E1B4B]">Microphone Stream</p>
+                      <p className="text-[10px] font-mono text-[#71717A]">48kHz Calibrated Sensor</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#1E1B4B]">Microphone Stream</p>
-                    <p className="text-[10px] font-mono text-[#71717A]">48kHz Calibrated Sensor</p>
-                  </div>
+                  <span
+                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                      micStatus === 'active'
+                        ? 'bg-emerald-50 border-emerald-200 text-[#0F766E]'
+                        : micStatus === 'testing'
+                        ? 'bg-amber-50 border-amber-200 text-[#B45309] animate-pulse'
+                        : micStatus === 'denied'
+                        ? 'bg-rose-50 border-rose-200 text-rose-700'
+                        : 'bg-amber-50 border-amber-200 text-[#B45309]'
+                    }`}
+                  >
+                    {micStatus === 'active'
+                      ? 'CALIBRATED'
+                      : micStatus === 'testing'
+                      ? 'SAMPLING...'
+                      : micStatus === 'denied'
+                      ? 'PERMISSION DENIED'
+                      : micStatus === 'unsupported'
+                      ? 'MANUAL MODE'
+                      : 'READY'}
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[#0F766E]">
-                  ACTIVE
-                </span>
+
+                {micStatus === 'testing' && (
+                  <div className="w-full bg-amber-100 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-[#E05A47] h-full transition-all duration-100"
+                      style={{ width: `${Math.max(5, micLevel)}%` }}
+                    />
+                  </div>
+                )}
+
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={micStatus === 'testing'}
+                    onClick={testMicrophone}
+                    className="text-[11px] font-mono font-bold text-[#B45309] hover:text-[#E05A47] hover:underline cursor-pointer"
+                  >
+                    {micStatus === 'testing'
+                      ? 'Testing Mic...'
+                      : micStatus === 'active'
+                      ? 'Re-test Calibration'
+                      : 'Test Audio Input'}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF7F2] border border-amber-200/80">
@@ -282,7 +372,7 @@ export const InterviewSetup = () => {
                   </div>
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[#0F766E]">
-                  ACTIVE
+                  OPTIONAL
                 </span>
               </div>
             </div>

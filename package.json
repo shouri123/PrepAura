@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/app.test.js"
+    "test": "node --test tests/app.test.js",
+    "ralph": "node scripts/ralph/runner.js",
+    "ralph:status": "node scripts/ralph/runner.js --status",
+    "ralph:verify": "node scripts/ralph/runner.js --verify",
+    "ralph:win": "powershell -ExecutionPolicy Bypass -File scripts/ralph/ralph.ps1",
+    "ralph:bash": "bash scripts/ralph/ralph.sh"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",

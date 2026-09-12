@@ -45,12 +45,18 @@ export const QuestionBank = () => {
   const topics = ['All', 'React', 'JavaScript', 'Conflict Resolution', 'DBMS', 'Architecture'];
 
   const filtered = questions.filter((q) => {
+    const sTerm = searchTerm.toLowerCase();
+    const qText = (q.question || '').toLowerCase();
+    const qTopic = (q.topic || '').toLowerCase();
+    const qRole = (q.role || '').toLowerCase();
+
     const matchSearch =
-      q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.role.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchTopic = selectedTopic === 'All' || q.topic.toLowerCase() === selectedTopic.toLowerCase();
-    const matchDiff = selectedDifficulty === 'All' || q.difficulty === selectedDifficulty;
+      qText.includes(sTerm) || qTopic.includes(sTerm) || qRole.includes(sTerm);
+    const matchTopic =
+      selectedTopic === 'All' || qTopic === selectedTopic.toLowerCase();
+    const matchDiff =
+      selectedDifficulty === 'All' ||
+      (q.difficulty || '').toLowerCase() === selectedDifficulty.toLowerCase();
     return matchSearch && matchTopic && matchDiff;
   });
 

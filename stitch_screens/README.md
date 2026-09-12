@@ -40,4 +40,3 @@ All screens must adhere to the Modern Antique Claymorphic design system specifie
 - Zero emojis.
 - Glazed porcelain cards with double bevel highlights.
 - `Fraunces` serif headings and `Plus Jakarta Sans` body.
-

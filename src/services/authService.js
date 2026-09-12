@@ -1,11 +1,10 @@
 import api from './api';
 import { MOCK_USER } from '../utils/mockData';
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+import { IS_MOCK } from '../utils/config';
 
 export const authService = {
   login: async (credentials) => {
-    if (USE_MOCK) {
+    if (IS_MOCK) {
       await new Promise((resolve) => setTimeout(resolve, 600));
       return { token: 'mock_jwt_token_xyz', user: MOCK_USER };
     }
@@ -54,7 +53,7 @@ export const authService = {
   },
 
   register: async (userData) => {
-    if (USE_MOCK) {
+    if (IS_MOCK) {
       await new Promise((resolve) => setTimeout(resolve, 600));
       return { token: 'mock_jwt_token_xyz', user: { ...MOCK_USER, ...userData } };
     }
@@ -97,12 +96,25 @@ export const authService = {
   },
 
   getCurrentUser: async () => {
-    if (USE_MOCK) return MOCK_USER;
+    if (IS_MOCK) return MOCK_USER;
     try {
       const response = await api.get('/auth/me');
       return response.data;
     } catch {
       return MOCK_USER;
     }
-  }
+  },
+
+  updateProfile: async (fields) => {
+    if (IS_MOCK) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return fields;
+    }
+    try {
+      const response = await api.put('/users/me', fields);
+      return response.data;
+    } catch {
+      return fields;
+    }
+  },
 };

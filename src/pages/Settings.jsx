@@ -15,12 +15,54 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 
+const SETTINGS_KEY = 'prepaura_chamber_settings';
+
 export const Settings = () => {
-  const [model, setModel] = useState('Claude 3.5 Sonnet (Latest)');
-  const [strictness, setStrictness] = useState('Rigorous');
-  const [voice, setVoice] = useState('US Male (Neutral Executive)');
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [apiKey, setApiKey] = useState('••••••••••••••••••••••••••••••••');
+  const [model, setModel] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      return saved.model || 'Claude 3.5 Sonnet (Latest)';
+    } catch {
+      return 'Claude 3.5 Sonnet (Latest)';
+    }
+  });
+
+  const [strictness, setStrictness] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      return saved.strictness || 'Rigorous';
+    } catch {
+      return 'Rigorous';
+    }
+  });
+
+  const [voice, setVoice] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      return saved.voice || 'US Male (Neutral Executive)';
+    } catch {
+      return 'US Male (Neutral Executive)';
+    }
+  });
+
+  const [emailAlerts, setEmailAlerts] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      return saved.emailAlerts ?? true;
+    } catch {
+      return true;
+    }
+  });
+
+  const [apiKey, setApiKey] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      return saved.apiKey || '';
+    } catch {
+      return '';
+    }
+  });
+
   const [saved, setSaved] = useState(false);
 
   const models = [
@@ -30,6 +72,14 @@ export const Settings = () => {
   ];
 
   const handleSave = () => {
+    try {
+      localStorage.setItem(
+        SETTINGS_KEY,
+        JSON.stringify({ model, strictness, voice, emailAlerts, apiKey })
+      );
+    } catch {
+      // Ignore
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

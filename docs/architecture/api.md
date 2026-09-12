@@ -14,6 +14,7 @@
 - **Method**: `POST`
 - **Endpoint**: `/api/auth/register`
 - **Request Body**:
+
   ```json
   {
     "email": "candidate@prepaura.ai",
@@ -25,6 +26,7 @@
   ```
 
 - **Response** (`201 Created`):
+
   ```json
   {
     "id": 1,
@@ -44,6 +46,7 @@
 - **Method**: `POST`
 - **Endpoint**: `/api/auth/login`
 - **Request Body**:
+
   ```json
   {
     "email": "candidate@prepaura.ai",
@@ -52,6 +55,7 @@
   ```
 
 - **Response** (`200 OK`):
+
   ```json
   {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6...",
@@ -74,6 +78,7 @@
 - **Endpoint**: `/api/auth/me`
 - **Headers**: `Authorization: Bearer <token>`
 - **Response** (`200 OK`):
+
   ```json
   {
     "id": 1,
@@ -96,6 +101,7 @@
 - **Endpoint**: `/api/interviews`
 - **Headers**: `Authorization: Bearer <token>`
 - **Request Body**:
+
   ```json
   {
     "role_track": "Distributed Systems",
@@ -106,6 +112,7 @@
   ```
 
 - **Response** (`201 Created`):
+
   ```json
   {
     "id": 42,
@@ -129,6 +136,7 @@
 - **Endpoint**: `/api/interviews/{id}/answer`
 - **Headers**: `Authorization: Bearer <token>`
 - **Request Body**:
+
   ```json
   {
     "question_order": 1,
@@ -138,6 +146,7 @@
   ```
 
 - **Response** (`200 OK`):
+
   ```json
   {
     "status": "recorded",
@@ -152,6 +161,7 @@
 - **Endpoint**: `/api/interviews/{id}/evaluate`
 - **Headers**: `Authorization: Bearer <token>`
 - **Response** (`200 OK`):
+
   ```json
   {
     "id": 42,

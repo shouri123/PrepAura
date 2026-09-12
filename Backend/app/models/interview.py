@@ -36,3 +36,7 @@ class Interview(Base):
     result: Mapped[Optional["Result"]] = relationship(
         "Result", back_populates="interview", uselist=False, cascade="all, delete-orphan"
     )
+
+    @property
+    def overall_score(self) -> Optional[float]:
+        return self.result.overall_score if self.result else None

@@ -47,10 +47,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  const updateUser = (updatedFields) => {
+  const updateUser = async (updatedFields) => {
     const updated = { ...user, ...updatedFields };
     setUser(updated);
     localStorage.setItem('user', JSON.stringify(updated));
+    try {
+      if (updatedFields.name) {
+        await authService.updateProfile({ name: updatedFields.name });
+      }
+    } catch {
+      // Graceful fallback to local session state
+    }
   };
 
   return (

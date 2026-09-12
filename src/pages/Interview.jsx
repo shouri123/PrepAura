@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock,
+  Timer,
   Mic,
   MicOff,
   Video,
@@ -30,17 +31,48 @@ import {
   DialogDescription,
 } from '../components/ui/dialog';
 
+const parseTimeEstimate = (est) => {
+  if (!est) return 180;
+  if (typeof est === 'number') return est * 60;
+  const match = String(est).match(/\d+/);
+  return match ? parseInt(match[0], 10) * 60 : 180;
+};
+
 export const Interview = () => {
   const navigate = useNavigate();
-  const { session, saveAnswer, setQuestionIndex } = useInterview();
+  const { session, saveAnswer, setQuestionIndex, resetSession } = useInterview();
 
-  const [seconds, setSeconds] = useState(0);
+  const currentIndex = session.currentIndex || 0;
+  const currentQ = session.questions?.[currentIndex] || {};
+  const totalQ = session.questions?.length || 1;
+  const progressPercent = ((currentIndex + 1) / totalQ) * 100;
+
+  const [seconds, setSeconds] = useState(() => {
+    if (session?.startTime) {
+      return Math.max(0, Math.floor((Date.now() - session.startTime) / 1000));
+    }
+    return 0;
+  });
+  const [questionSecondsLeft, setQuestionSecondsLeft] = useState(() =>
+    parseTimeEstimate(session.questions?.[currentIndex]?.timeEstimate)
+  );
   const [showExitModal, setShowExitModal] = useState(false);
   const [currentText, setCurrentText] = useState('');
   const [showHint, setShowHint] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+
+  // Audio Telemetry & Speech Recognition State
+  const [waveformBars, setWaveformBars] = useState([12, 28, 45, 20, 60, 35, 75, 40, 55, 30, 68, 25, 40, 18]);
+  const [speechActive, setSpeechActive] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const streamRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   // Redirect if there are no questions
   useEffect(() => {
@@ -49,18 +81,186 @@ export const Interview = () => {
     }
   }, [session, navigate]);
 
-  // Session stopwatch timer
+  // Synchronize question countdown timer on question switch
+  useEffect(() => {
+    const qSecs = parseTimeEstimate(session.questions?.[currentIndex]?.timeEstimate);
+    setQuestionSecondsLeft(qSecs);
+  }, [currentIndex, session.questions]);
+
+  // Chamber stopwatch and question countdown timer
   useEffect(() => {
     const timer = setInterval(() => {
       setSeconds((s) => s + 1);
+      setQuestionSecondsLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const currentIndex = session.currentIndex || 0;
-  const currentQ = session.questions?.[currentIndex] || {};
-  const totalQ = session.questions?.length || 1;
-  const progressPercent = ((currentIndex + 1) / totalQ) * 100;
+  // Web Audio API live microphone stream
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const initAudio = async () => {
+      if (micMuted) {
+        if (streamRef.current) {
+          streamRef.current.getAudioTracks().forEach((track) => {
+            track.enabled = false;
+          });
+        }
+        return;
+      }
+
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        return;
+      }
+
+      try {
+        if (!streamRef.current) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          if (!isSubscribed) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          streamRef.current = stream;
+
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            const ctx = new AudioContextClass();
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 64;
+            const source = ctx.createMediaStreamSource(stream);
+            source.connect(analyser);
+
+            audioContextRef.current = ctx;
+            analyserRef.current = analyser;
+          }
+        } else {
+          streamRef.current.getAudioTracks().forEach((track) => {
+            track.enabled = true;
+          });
+        }
+
+        const renderAudioTelemetry = () => {
+          if (analyserRef.current && !micMuted) {
+            const data = new Uint8Array(analyserRef.current.frequencyBinCount);
+            analyserRef.current.getByteFrequencyData(data);
+            const bars = [];
+            const step = Math.max(1, Math.floor(data.length / 14));
+            for (let i = 0; i < 14; i++) {
+              const val = data[i * step] || 0;
+              const height = Math.max(8, Math.min(80, Math.round((val / 255) * 80)));
+              bars.push(height);
+            }
+            setWaveformBars(bars);
+          }
+          animFrameRef.current = requestAnimationFrame(renderAudioTelemetry);
+        };
+        animFrameRef.current = requestAnimationFrame(renderAudioTelemetry);
+      } catch {
+        // Microphone access denied or headless, fallback waveform will operate
+      }
+    };
+
+    initAudio();
+
+    return () => {
+      isSubscribed = false;
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [micMuted]);
+
+  // Web Speech API Continuous Transcription
+  useEffect(() => {
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionClass();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setSpeechActive(true);
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (transcript.trim()) {
+          setCurrentText((prev) => {
+            const separator = prev.length && !prev.endsWith(' ') ? ' ' : '';
+            const updated = prev + separator + transcript.trim();
+            saveAnswer(currentIndex, updated);
+            return updated;
+          });
+        }
+      };
+
+      recognition.onerror = () => {
+        // Fallback silently to manual keyboard input
+      };
+
+      recognition.onend = () => {
+        if (!micMuted && recognitionRef.current) {
+          try {
+            recognition.start();
+          } catch {
+            setSpeechActive(false);
+          }
+        } else {
+          setSpeechActive(false);
+        }
+      };
+
+      if (!micMuted) {
+        try {
+          recognition.start();
+        } catch {
+          // Already running
+        }
+      }
+      recognitionRef.current = recognition;
+    } catch {
+      setSpeechSupported(false);
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // Ignore
+        }
+      }
+    };
+  }, [currentIndex, micMuted]);
+
+  // Clean up media streams and context on chamber exit
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // Ignore
+        }
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setCurrentText(session.answers?.[currentIndex] || '');
@@ -88,7 +288,9 @@ export const Interview = () => {
     setSubmitting(true);
     try {
       const result = await interviewService.completeInterview(session.interviewId);
-      navigate(`/interview/result/${result.id}`);
+      resetSession();
+      const targetId = result?.interviewId || result?.id || session.interviewId;
+      navigate(`/interview/result/${targetId}`);
     } finally {
       setSubmitting(false);
     }
@@ -132,12 +334,29 @@ export const Interview = () => {
         </div>
 
         {/* Right Timer & Exit */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-amber-200 shadow-sm">
-            <Clock className="w-3.5 h-3.5 text-[#E05A47]" />
-            <span className="font-mono text-xs font-bold text-[#1E1B4B]">
-              {formatTimer(seconds)}
-            </span>
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          {/* Question Pacing Countdown */}
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border shadow-sm transition-colors ${
+              questionSecondsLeft <= 30
+                ? 'bg-rose-50 border-rose-300 text-rose-700'
+                : 'bg-white border-amber-200 text-[#1E1B4B]'
+            }`}
+          >
+            <Timer className={`w-3.5 h-3.5 ${questionSecondsLeft <= 30 ? 'text-rose-600 animate-pulse' : 'text-[#E05A47]'}`} />
+            <div className="flex items-baseline gap-1 font-mono text-xs font-bold">
+              <span className="text-[10px] text-[#71717A] uppercase font-mono hidden sm:inline">PACE</span>
+              <span>{formatTimer(questionSecondsLeft)}</span>
+            </div>
+          </div>
+
+          {/* Chamber Stopwatch Duration */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-amber-200 shadow-sm">
+            <Clock className="w-3.5 h-3.5 text-[#B45309]" />
+            <div className="flex items-baseline gap-1 font-mono text-xs font-bold text-[#1E1B4B]">
+              <span className="text-[10px] text-[#71717A] uppercase font-mono">TOTAL</span>
+              <span>{formatTimer(seconds)}</span>
+            </div>
           </div>
 
           <button
@@ -171,19 +390,12 @@ export const Interview = () => {
             </div>
 
             {/* Live Audio Waveform visualizer */}
-            <div className="py-8 flex items-center justify-center gap-1.5">
-              {[12, 28, 45, 20, 60, 35, 75, 40, 55, 30, 68, 25, 40, 18].map((h, i) => (
-                <motion.span
+            <div className="py-8 flex items-center justify-center gap-1.5 h-24">
+              {waveformBars.map((h, i) => (
+                <span
                   key={i}
-                  animate={{ height: [h * 0.4, h, h * 0.3] }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.9,
-                    delay: i * 0.08,
-                    ease: 'easeInOut',
-                  }}
-                  className="w-1.5 bg-[#E05A47] rounded-full"
-                  style={{ minHeight: '8px' }}
+                  className="w-1.5 bg-[#E05A47] rounded-full transition-all duration-75"
+                  style={{ height: `${micMuted ? 8 : Math.max(8, h)}px` }}
                 />
               ))}
             </div>
@@ -276,8 +488,20 @@ export const Interview = () => {
                 Verbatim Response Stream / Scratchpad
               </span>
               <span className="text-[10px] font-mono text-[#0F766E] font-bold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0F766E] animate-pulse" />
-                Speech Synthesis Sync Active
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    micMuted
+                      ? 'bg-rose-500'
+                      : speechSupported && speechActive
+                      ? 'bg-[#0F766E] animate-pulse'
+                      : 'bg-amber-500'
+                  }`}
+                />
+                {micMuted
+                  ? 'Sensor Suspended (Muted)'
+                  : speechSupported && speechActive
+                  ? 'Speech-to-Text Synchronized'
+                  : 'Manual Keyboard Input Active'}
               </span>
             </div>
 
@@ -358,6 +582,7 @@ export const Interview = () => {
             </button>
             <button
               onClick={() => {
+                resetSession();
                 setShowExitModal(false);
                 navigate('/dashboard');
               }}

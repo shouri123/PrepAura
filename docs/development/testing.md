@@ -7,6 +7,7 @@
 #### A. Import Smoke Test
 
 Verify that FastAPI, SQLAlchemy models, Pydantic schemas, and security dependencies resolve with zero syntax or runtime errors:
+
 ```bash
 python -c "from app.main import app; print('Backend loaded successfully')"
 ```
@@ -14,10 +15,13 @@ python -c "from app.main import app; print('Backend loaded successfully')"
 #### B. API Health Check
 
 Test endpoint connectivity via curl or PowerShell `Invoke-RestMethod`:
+
 ```bash
 curl -X GET http://127.0.0.1:8000/health
 ```
+
 Expected output:
+
 ```json
 {"status":"healthy","version":"1.0.0","service":"prepaura-simulation-api"}
 ```
@@ -25,6 +29,7 @@ Expected output:
 #### C. User Registration & Login Smoke Test
 
 Register a test candidate:
+
 ```bash
 curl -X POST http://127.0.0.1:8000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -32,6 +37,7 @@ curl -X POST http://127.0.0.1:8000/api/auth/register \
 ```
 
 Log in and obtain a JWT bearer token:
+
 ```bash
 curl -X POST http://127.0.0.1:8000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -39,6 +45,7 @@ curl -X POST http://127.0.0.1:8000/api/auth/login \
 ```
 
 Query the authenticated current user profile:
+
 ```bash
 curl -X GET http://127.0.0.1:8000/api/auth/me \
   -H "Authorization: Bearer <TOKEN_RETURNED_ABOVE>"
@@ -51,10 +58,13 @@ curl -X GET http://127.0.0.1:8000/api/auth/me \
 #### A. Production Build Verification
 
 Ensure all React 19 components, JSX syntax, and CSS postprocessing compile without warnings or bundle errors:
+
 ```bash
 npm run build
 ```
+
 Expected output:
+
 ```text
 vite v6.0.5 building for production...
 transforming...

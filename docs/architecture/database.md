@@ -92,6 +92,7 @@ The codebase uses SQLAlchemy 2.0 standard declarative mappings with no SQLite-sp
 
 1. Update `Backend/requirements.txt` to include `asyncpg`.
 2. Modify `DATABASE_URL` in `Backend/.env`:
+
    ```env
    DATABASE_URL=postgresql+asyncpg://user:password@host:5432/prepaura
    ```
