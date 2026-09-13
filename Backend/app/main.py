@@ -46,6 +46,7 @@ app.include_router(interviews.router, prefix="/api")
 app.include_router(questions.router, prefix="/api")
 app.include_router(results.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(analytics.dashboard_router, prefix="/api")
 
 
 @app.get("/health", status_code=status.HTTP_200_OK, tags=["Health"])

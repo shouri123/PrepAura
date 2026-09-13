@@ -1,0 +1,137 @@
+{
+  "project": "PrepAura",
+  "branchName": "feature/ralph-chamber-hardening",
+  "description": "Hardening PrepAura: fixing critical bugs, synchronizing API schemas, implementing real audio and speech telemetry, and establishing 4-vector scoring engine.",
+  "userStories": [
+    {
+      "id": "STORY-001",
+      "title": "Fix Hugging Face URL syntax and missing HTTPException import in Backend",
+      "description": "Resolve the malformed markdown link syntax inside the Hugging Face inference URL in ai_service.py and add the missing HTTPException import in interviews.py to prevent runtime crashes.",
+      "priority": 1,
+      "passes": true,
+      "acceptanceCriteria": [
+        "In Backend/app/services/ai_service.py, line 156 URL string literal contains no markdown formatting and reads: https://api-inference.huggingface.co/models/{settings.HF_MODEL_ID}",
+        "In Backend/app/api/routes/interviews.py, HTTPException is properly imported from fastapi",
+        "Python backend imports without errors: python -c \"from app.main import app; print('OK')\"",
+        "All backend tests pass via pytest"
+      ]
+    },
+    {
+      "id": "STORY-002",
+      "title": "Implement Backend /api/dashboard endpoint",
+      "description": "The frontend interviewService calls /dashboard, but the backend lacks this endpoint. Create an aggregated /api/dashboard endpoint providing user metrics, score trajectory, and recommended drills.",
+      "priority": 2,
+      "passes": true,
+      "acceptanceCriteria": [
+        "Backend/app/api/routes/analytics.py or a dedicated dashboard route defines GET /dashboard (mounted under /api)",
+        "Endpoint returns JSON matching frontend expectations: stats (interviewsCompleted, averageScore, questionsAnswered, currentStreak), scoreTrend array, skillAnalysis array, and recentInterviews array",
+        "Endpoint requires authentication via Depends(get_current_user)",
+        "Calling GET /api/dashboard with a valid token returns HTTP 200 with non-empty payload structure"
+      ]
+    },
+    {
+      "id": "STORY-003",
+      "title": "Align Question Bank API routes and query parameters",
+      "description": "questionService.js currently requests GET /questions, whereas the backend exposes GET /questions/bank. Align both frontend caller and backend router to prevent 404 errors.",
+      "priority": 3,
+      "passes": true,
+      "acceptanceCriteria": [
+        "Backend/app/api/routes/questions.py supports GET /questions/bank and optionally alias GET /questions",
+        "src/services/questionService.js requests the correct question bank route and passes topic/difficulty filters properly",
+        "Filtering by topic and difficulty returns matching Question items from database or fallback bank",
+        "QuestionBank.jsx renders filtered questions without console errors"
+      ]
+    },
+    {
+      "id": "STORY-004",
+      "title": "Normalize interview result retrieval and frontend result debrief schema",
+      "description": "Fix interview completion result routing (interview_id vs result_id) and normalize ResultResponse fields so InterviewResult.jsx renders without JavaScript TypeErrors when mock mode is off.",
+      "priority": 4,
+      "passes": true,
+      "acceptanceCriteria": [
+        "In src/pages/Interview.jsx, completing an interview navigates using the interview_id or ensures getInterviewResult can resolve either interview_id or result_id",
+        "Backend GET /api/interviews/{interview_id}/result returns a payload containing overall_score, competency breakdowns, strengths, weaknesses, and recommendations",
+        "src/services/interviewService.js or InterviewResult.jsx handles property normalization (e.g. overall_score vs overallScore, scores object, strengths, improvements, aiRecommendation) gracefully",
+        "InterviewResult.jsx renders cleanly without 'Cannot read properties of undefined' errors when live data is returned"
+      ]
+    },
+    {
+      "id": "STORY-005",
+      "title": "Upgrade database model and evaluation engine to 4-vector scoring",
+      "description": "Upgrade the Result model and evaluation engine to measure the 4 documented vectors: Technical Rigor (30%), Structured Delivery (25%), Problem Decomposition (25%), and Edge-Case Conviction (20%).",
+      "priority": 5,
+      "passes": true,
+      "acceptanceCriteria": [
+        "Backend/app/models/result.py defines technical_rigor_score, structured_delivery_score, problem_decomposition_score, and edge_case_conviction_score (or equivalent vector fields)",
+        "Backend/app/schemas/result.py exposes the 4 competency scores in ResultResponse",
+        "EvaluationService calculates overall_score using the weighted formula: (Rigor * 0.30) + (Structure * 0.25) + (Decomposition * 0.25) + (EdgeCases * 0.20)",
+        "All scores are constrained within the range [0, 100]"
+      ]
+    },
+    {
+      "id": "STORY-006",
+      "title": "Implement real Web Audio API waveform telemetry in Interview chamber",
+      "description": "Replace the static CSS animated bars in Interview.jsx with real microphone audio capture via Web Audio API AudioContext and AnalyserNode. Add live mic stream check in InterviewSetup.jsx.",
+      "priority": 6,
+      "passes": true,
+      "acceptanceCriteria": [
+        "In src/pages/InterviewSetup.jsx, clicking hardware test or mounting prompts for microphone permission and shows live audio input level",
+        "In src/pages/Interview.jsx, microphone stream connects to an AnalyserNode and updates waveform bars dynamically in real time",
+        "Graceful fallback waveform animation operates if microphone access is denied or unavailable (e.g. headless or non-HTTPS environment) without throwing console errors",
+        "Mute button properly suspends audio capture and updates UI indicator"
+      ]
+    },
+    {
+      "id": "STORY-007",
+      "title": "Implement Web Speech API transcription in scratchpad",
+      "description": "Connect speech recognition to the live scratchpad in Interview.jsx so candidate verbal answers are automatically transcribed into the text area in real time.",
+      "priority": 7,
+      "passes": true,
+      "acceptanceCriteria": [
+        "src/pages/Interview.jsx initializes webkitSpeechRecognition or SpeechRecognition if available in the browser",
+        "Spoken words append into the active answer scratchpad with continuous interim results",
+        "Manual typing in the scratchpad remains fully functional alongside voice transcription",
+        "If SpeechRecognition is unsupported in the browser, an informational status indicates manual typing mode without throwing unhandled exceptions"
+      ]
+    },
+    {
+      "id": "STORY-008",
+      "title": "Implement session crash recovery in InterviewContext",
+      "description": "Persist active interview session data, question index, elapsed timer, and draft scratchpad answers in localStorage so reloading or accidental navigation does not wipe candidate work.",
+      "priority": 8,
+      "passes": true,
+      "acceptanceCriteria": [
+        "src/context/InterviewContext.jsx writes session state changes to localStorage under a dedicated storage key",
+        "On page refresh on /interview/session, existing in-progress session restores seamlessly instead of kicking candidate back to /interview/setup",
+        "Completing or aborting the interview clears active session cache from localStorage",
+        "Reset and recovery mechanisms are covered by sanity test"
+      ]
+    },
+    {
+      "id": "STORY-009",
+      "title": "Connect Analytics view to live backend overview endpoint",
+      "description": "Create src/services/analyticsService.js and connect Analytics.jsx to fetch real metrics from GET /api/analytics/overview with fallback to mock data when backend is unreachable.",
+      "priority": 9,
+      "passes": true,
+      "acceptanceCriteria": [
+        "src/services/analyticsService.js created with getAnalyticsOverview method",
+        "src/pages/Analytics.jsx fetches data on mount via analyticsService",
+        "Render displays real user statistics, skill radar/bar chart, and recent score history",
+        "If backend is down, falls back cleanly to local mock metrics without throwing exceptions"
+      ]
+    },
+    {
+      "id": "STORY-010",
+      "title": "Implement user profile persistence and settings storage",
+      "description": "Enable Profile.jsx to persist candidate details via PUT /api/users/me and store chamber engine preferences and custom BYOK API keys in Settings.jsx in localStorage.",
+      "priority": 10,
+      "passes": true,
+      "acceptanceCriteria": [
+        "Profile.jsx commits changes to backend PUT /api/users/me when authenticated, updating local auth context",
+        "Settings.jsx stores model choice, strictness, voice, and BYOK API key in localStorage",
+        "On initial render, Settings.jsx reads saved preferences from localStorage",
+        "Zero emojis used in any status indicators, buttons, or toast notifications"
+      ]
+    }
+  ]
+}

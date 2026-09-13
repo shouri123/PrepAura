@@ -11,12 +11,14 @@
 **Resolution**:
 
 - Identify and terminate the offending process on Windows:
+
   ```powershell
   Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object OwningProcess
   Stop-Process -Id <PID> -Force
   ```
 
 - Or on macOS / Linux:
+
   ```bash
   lsof -i :3000
   kill -9 <PID>
@@ -37,6 +39,7 @@
 **Resolution**:
 
 - PrepAura uses `pwdlib[argon2]` in `Backend/app/core/security.py`. Ensure `pwdlib` is installed:
+
   ```bash
   pip install "pwdlib[argon2]"
   ```
@@ -58,6 +61,7 @@
 - Start the backend via `cd Backend && python run.py`.
 - Verify `http://127.0.0.1:8000/health` responds with `{"status":"healthy"}`.
 - Check `vite.config.js` proxy configuration:
+
   ```javascript
   server: {
     port: 3000,

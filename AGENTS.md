@@ -187,3 +187,15 @@ PrepAura/
 2. Run frontend build verification (`npm run build`).
 3. Verify affected browser pages for visual consistency and console errors.
 4. Update corresponding documentation in `docs/` if architecture or behavior has changed.
+
+---
+
+## Autonomous Development Workflow (Ralph Loop)
+
+Autonomous agents executing milestone features, backlog tasks, or platform hardening must follow the Ralph loop workflow:
+
+1. **Backlog Inspection**: Run `npm run ralph:status` or inspect `scripts/ralph/prd.json` to identify the next incomplete user story (`passes: false`).
+2. **Single Story Scope**: Implement only the single selected story in each cycle. Adhere to the zero-emoji policy and existing architectural patterns.
+3. **Verification**: Execute `npm run ralph:verify`, `npm test`, `npm run build`, and `pytest`.
+4. **Mark Passed**: Run `node scripts/ralph/runner.js --mark-passed <STORY-ID>` and record completion notes in `scripts/ralph/progress.txt`.
+5. **Commit**: Create an atomic git commit describing the change without emojis.

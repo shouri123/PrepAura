@@ -109,10 +109,14 @@ class AIService:
         role: str, questions: List[str], answers: List[str]
     ) -> Dict[str, Any]:
         fallback_evaluation = {
-            "overall_score": 82.0,
+            "overall_score": 81.8,
+            "technical_rigor_score": 85.0,
+            "structured_delivery_score": 80.0,
+            "problem_decomposition_score": 82.0,
+            "edge_case_conviction_score": 79.0,
             "technical_score": 85.0,
             "communication_score": 80.0,
-            "problem_solving_score": 81.0,
+            "problem_solving_score": 82.0,
             "strengths": [
                 "Clear conceptual clarity and structured reasoning",
                 "Concise understanding of fundamental technical patterns",
@@ -136,6 +140,10 @@ class AIService:
             "Evaluate rigorously. Return ONLY a valid JSON object with exactly these fields:\n"
             "{\n"
             '  "overall_score": <number between 0 and 100>,\n'
+            '  "technical_rigor_score": <number between 0 and 100>,\n'
+            '  "structured_delivery_score": <number between 0 and 100>,\n'
+            '  "problem_decomposition_score": <number between 0 and 100>,\n'
+            '  "edge_case_conviction_score": <number between 0 and 100>,\n'
             '  "technical_score": <number between 0 and 100>,\n'
             '  "communication_score": <number between 0 and 100>,\n'
             '  "problem_solving_score": <number between 0 and 100>,\n'
@@ -153,7 +161,7 @@ class AIService:
             "inputs": prompt,
             "parameters": {"max_new_tokens": 800, "temperature": 0.2, "return_full_text": False},
         }
-        url = f"[https://api-inference.huggingface.co/models/](https://api-inference.huggingface.co/models/){settings.HF_MODEL_ID}"
+        url = f"https://api-inference.huggingface.co/models/{settings.HF_MODEL_ID}"
 
         try:
             async with httpx.AsyncClient(timeout=25.0) as client:
@@ -165,6 +173,11 @@ class AIService:
                     parsed = json.loads(text)
                     required = ["overall_score", "technical_score", "communication_score", "problem_solving_score"]
                     if all(k in parsed for k in required):
+                        # Ensure 4-vector fields exist if model omitted them
+                        parsed.setdefault("technical_rigor_score", float(parsed.get("technical_score", 75.0)))
+                        parsed.setdefault("structured_delivery_score", float(parsed.get("communication_score", 75.0)))
+                        parsed.setdefault("problem_decomposition_score", float(parsed.get("problem_solving_score", 75.0)))
+                        parsed.setdefault("edge_case_conviction_score", float(parsed.get("technical_score", 75.0)))
                         return parsed
         except Exception as exc:
             logger.error(f"Hugging Face evaluation error: {exc}. Falling back to standard evaluation.")

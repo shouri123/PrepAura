@@ -41,3 +41,13 @@ This document provides explicit execution instructions for autonomous AI agents 
 3. Add a navigation link to `src/components/Navbar.jsx` or `src/components/Footer.jsx`.
 4. Run `npm test` and `npm run build` to verify clean compilation.
 5. Register the screen in `docs/design/screens.md`.
+
+### Recipe D: Implementing PRD Stories via Ralph Loop
+
+1. Run `npm run ralph:status` to inspect the queue of pending tasks.
+2. Open `scripts/ralph/prd.json` and locate the first incomplete story (`passes: false`).
+3. Implement the minimal code satisfying all listed acceptance criteria.
+4. Verify changes using `npm run ralph:verify`, `npm test`, `npm run build`, and `pytest`.
+5. Mark the story as passed: `node scripts/ralph/runner.js --mark-passed <STORY-ID>`.
+6. Append the iteration log in `scripts/ralph/progress.txt` and create a clean git commit without emojis.
+

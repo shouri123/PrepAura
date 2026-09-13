@@ -7,7 +7,9 @@ class QuestionBase(BaseModel):
     question: str
     difficulty: str
     hint: str | None = None
-    order_index: int
+    order_index: int = 0
+    role: str | None = "Engineering"
+    timeEstimate: str | None = "3 mins"
 
 
 class QuestionCreate(QuestionBase):
@@ -16,7 +18,7 @@ class QuestionCreate(QuestionBase):
 
 class QuestionResponse(QuestionBase):
     id: int
-    interview_id: int
+    interview_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

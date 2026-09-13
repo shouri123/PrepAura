@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart2,
@@ -24,11 +24,39 @@ import {
   Bar,
   Cell
 } from 'recharts';
-import { MOCK_SCORE_TREND, MOCK_SKILL_ANALYSIS } from '../utils/mockData';
+import { analyticsService } from '../services/analyticsService';
 import { Card, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 
 export const Analytics = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const res = await analyticsService.getAnalyticsOverview();
+        setData(res);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
+
+  if (loading || !data) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <div className="w-8 h-8 rounded-full border-2 border-[#E05A47] border-t-transparent animate-spin" />
+        <p className="font-mono text-xs text-[#71717A] uppercase tracking-widest">
+          COMPILING LONGITUDINAL TELEMETRY...
+        </p>
+      </div>
+    );
+  }
+
+  const kpiIcons = [Target, Clock, Activity, Zap];
+
   return (
     <div className="space-y-8 pb-16 max-w-6xl mx-auto text-left">
       {/* Header */}
@@ -57,13 +85,8 @@ export const Analytics = () => {
 
       {/* Top Diagnostics KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Cumulative Score', val: '84 / 100', sub: '+12 pts in last 30d', icon: Target },
-          { label: 'Verbal Pacing Rate', val: '135 WPM', sub: 'Optimal cadence (120–145)', icon: Clock },
-          { label: 'STAR Structure Score', val: '91.2%', sub: 'High structural coherence', icon: Activity },
-          { label: 'Weakness Rectification', val: '78%', sub: '7 of 9 vectors resolved', icon: Zap },
-        ].map((kpi, i) => {
-          const Icon = kpi.icon;
+        {data.kpis.map((kpi, i) => {
+          const Icon = kpiIcons[i % kpiIcons.length];
           return (
             <Card key={i} className="clay-card-antique p-5 border-2 border-white shadow-sm">
               <div className="flex items-center justify-between text-[#71717A] mb-2">
@@ -93,7 +116,7 @@ export const Analytics = () => {
 
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={MOCK_SCORE_TREND}>
+              <AreaChart data={data.scoreTrend}>
                 <defs>
                   <linearGradient id="analyticsTerracotta" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#E05A47" stopOpacity={0.35} />
@@ -139,14 +162,14 @@ export const Analytics = () => {
 
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={MOCK_SKILL_ANALYSIS} layout="vertical">
+              <BarChart data={data.skillAnalysis} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3ECE2" horizontal={false} />
                 <XAxis type="number" domain={[0, 100]} fontSize={11} stroke="#71717A" tickLine={false} />
                 <YAxis
                   dataKey="skill"
                   type="category"
-                  width={110}
-                  fontSize={11}
+                  width={120}
+                  fontSize={10}
                   stroke="#52525B"
                   tickLine={false}
                 />
@@ -161,7 +184,7 @@ export const Analytics = () => {
                   }}
                 />
                 <Bar dataKey="score" radius={[0, 6, 6, 0]}>
-                  {MOCK_SKILL_ANALYSIS.map((entry, index) => (
+                  {data.skillAnalysis.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.score >= 85 ? '#E05A47' : '#0F766E'}
